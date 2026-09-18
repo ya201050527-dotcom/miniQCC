@@ -18,10 +18,10 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-5 mb-6 gap-4">
         <div>
             <h2 class="text-2xl font-bold text-slate-900">手術病人流程時間紀錄系統</h2>
-            <p class="text-sm text-slate-500 mt-1">請先填寫基本資料（日期、病歷號、房間號）以解鎖時間記錄欄位</p>
+            <p class="text-sm text-slate-500 mt-1">請先填寫基本資料（日期、病歷號、房間號）</p>
         </div>
         <div id="syncStatus" class="text-xs px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 font-medium transition-all duration-300">
-            ⚡ 請先填寫基本資料
+            請先填寫基本資料
         </div>
     </div>
 
@@ -61,10 +61,10 @@
             <!-- Action Buttons Footer -->
             <div class="pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div class="text-xs text-slate-400">
-                    💡 多位醫護可使用不同手機同步至同一病人的同列
+                    * 點選「現在時間」即會自動將該欄位與備註同步至雲端
                 </div>
                 <button type="button" onclick="confirmComplete()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-xl shadow-md transition-all duration-200 flex items-center gap-2 cursor-pointer z-10 w-full sm:w-auto justify-center">
-                    ✅ 輸入完成（清空畫面以輸入下一筆）
+                    ✅ 輸入完成
                 </button>
             </div>
 
@@ -78,7 +78,7 @@
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100">
         <h3 class="text-lg font-bold text-slate-900 mb-2">確認「輸入完成」？</h3>
         <p class="text-sm text-slate-600 mb-6 leading-relaxed">
-            這將會清空您目前的畫面，讓您可以開始輸入下一位病人。<br><span class="text-emerald-600 font-medium">（註：這不會影響雲端已同步的資料。其他同仁若有需要，仍可繼續為該病人透過病歷號補充或同步其他時間與備註）</span>
+            這將會清空您目前畫面的資料，讓您可以開始輸入下一位病人。<br><span class="text-emerald-600 font-medium">（雲端上的資料已自動儲存，其他同仁仍可繼續協作）</span>
         </p>
         <div class="flex justify-end gap-3">
             <button type="button" onclick="closeModal()" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-medium text-sm hover:bg-slate-50 transition-colors cursor-pointer">取消</button>
@@ -91,13 +91,17 @@
     // Set default date to today
     document.getElementById('surgeryDate').valueAsDate = new Date();
 
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxST9YqDVI0rB-MHrZMkI-cHLY0cTvOp5mDBJMLm01F_W9HzUMnfamIyK_aZrtzM7lT/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyqQhv2UW7XaTCJk1vD71Yk-aFOs30ScXTLTcV9W6xFUSmx5xZkHvZ8QzNg7HYN4Dem/exec';
     let debounceTimer = null;
     let isBasicInfoLocked = false;
     let isFetchingFromCloud = false;
 
     const timeSteps = [
-        { id: 'anesthesiaStart', label: '1. 麻醉開始時間' },
+        { 
+            id: 'anesthesiaStart', 
+            label: '1. 麻醉開始時間',
+            hasIntubationType: true 
+        },
         { id: 'anesthesiaEnd', label: '2. 麻醉結束時間' },
         { id: 'prepStart', label: '3. 專責開始準備時間' },
         { id: 'prepComplete', label: '4. 專責完成時間' },
@@ -111,16 +115,33 @@
 
     const container = document.getElementById('timeFieldsContainer');
 
-    // Dynamically render time rows
+    // Dynamically render time rows with clean stacked design
     timeSteps.forEach(step => {
         const row = document.createElement('div');
-        row.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 transition-all hover:bg-slate-100/60';
+        row.className = 'bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col gap-3 transition-all hover:bg-slate-100/60';
+        
+        let extraHtml = '';
+        if (step.hasIntubationType) {
+            extraHtml = `
+                <select id="intubationType" onchange="executeSync('anesthesiaStart')" class="p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none w-full sm:w-56">
+                    <option value="">選擇插管分類...</option>
+                    <option value="氣管插管">氣管插管</option>
+                    <option value="double lumen氣管插管">double lumen氣管插管</option>
+                </select>
+            `;
+        }
+
         row.innerHTML = `
-            <div class="font-semibold text-sm text-slate-700 w-full md:w-56 flex-shrink-0">${step.label}</div>
-            <div class="flex flex-wrap md:flex-nowrap items-center gap-3 w-full">
-                <input type="time" id="${step.id}" onblur="executeSync()" class="p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none w-36">
-                <input type="text" id="${step.id}Note" placeholder="備註（選填）" onblur="executeSync()" class="p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none flex-grow">
-                <button type="button" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold px-3 py-2.5 rounded-lg transition-colors whitespace-nowrap shadow-sm cursor-pointer" onclick="setCurrentTimeAndSync('${step.id}')">現在時間</button>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div class="font-semibold text-sm text-slate-700 flex-shrink-0">${step.label}</div>
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    ${extraHtml}
+                    <input type="time" id="${step.id}" class="p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none w-36">
+                    <button type="button" class="bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors whitespace-nowrap shadow-sm cursor-pointer ml-auto sm:ml-0" onclick="setCurrentTimeAndSync('${step.id}')">現在時間</button>
+                </div>
+            </div>
+            <div class="w-full pt-1">
+                <input type="text" id="${step.id}Note" placeholder="備註 (選填)" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
             </div>
         `;
         container.appendChild(row);
@@ -135,7 +156,7 @@
         if (surgeryDate && patientId && roomNo) {
             container.classList.remove('opacity-50', 'pointer-events-none');
             if (!isBasicInfoLocked) {
-                updateStatus('⚡ 準備就緒，點選「現在時間」或填寫完欄位後會自動同步', 'bg-emerald-100 text-emerald-800');
+                updateStatus('⚡ 準備就緒，點選「現在時間」後將同步至雲端', 'bg-emerald-100 text-emerald-800');
             }
             return true;
         } else {
@@ -176,7 +197,7 @@
         const minutes = String(now.getMinutes()).padStart(2, '0');
         document.getElementById(fieldId).value = `${hours}:${minutes}`;
         
-        executeSync();
+        executeSync(fieldId);
     }
 
     function debounceCheckPatient() {
@@ -214,6 +235,13 @@
                     document.getElementById('roomNo').value = matched["房間號"];
                 }
 
+                // Intubation type sync
+                const intubSelect = document.getElementById('intubationType');
+                const intubVal = matched["插管分類"];
+                if (intubSelect && !intubSelect.value && intubVal !== undefined && intubVal !== null && String(intubVal).trim() !== "") {
+                    intubSelect.value = String(intubVal).trim();
+                }
+
                 const timeKeyMap = {
                     'anesthesiaStart': '麻醉開始時間',
                     'anesthesiaEnd': '麻醉結束時間',
@@ -245,7 +273,6 @@
                     const tVal = matched[timeKeyMap[step.id]];
                     const nVal = matched[noteKeyMap[step.id]];
                     
-                    // Safe guard: only populate if local input is empty and cloud has data
                     if (!tInput.value && tVal !== undefined && tVal !== null && String(tVal).trim() !== "") {
                         tInput.value = String(tVal).trim();
                     }
@@ -267,7 +294,7 @@
         });
     }
 
-    function executeSync() {
+    function executeSync(updatedFieldId) {
         const patientId = document.getElementById('patientId').value.trim();
         const surgeryDate = document.getElementById('surgeryDate').value;
         const roomNo = document.getElementById('roomNo').value.trim();
@@ -285,6 +312,11 @@
             roomNo: roomNo
         };
 
+        const intubSelect = document.getElementById('intubationType');
+        if (intubSelect) {
+            payload.intubationType = intubSelect.value;
+        }
+
         timeSteps.forEach(step => {
             payload[step.id] = document.getElementById(step.id).value;
             payload[step.id + 'Note'] = document.getElementById(step.id + 'Note').value;
@@ -297,7 +329,7 @@
             body: JSON.stringify(payload)
         })
         .then(() => {
-            updateStatus('✅ 已同步更新時間與備註至該病人同列', 'bg-emerald-100 text-emerald-800');
+            updateStatus('✅ 已成功同步至該病人同列', 'bg-emerald-100 text-emerald-800');
         })
         .catch(err => {
             console.error(err);
@@ -333,6 +365,9 @@
         dateInput.valueAsDate = new Date();
         patientIdInput.value = '';
         roomNoInput.value = '';
+
+        const intubSelect = document.getElementById('intubationType');
+        if (intubSelect) intubSelect.value = '';
 
         timeSteps.forEach(step => {
             document.getElementById(step.id).value = '';
