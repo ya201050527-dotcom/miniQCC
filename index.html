@@ -136,7 +136,7 @@
                 <div class="font-semibold text-sm text-slate-700 flex-shrink-0">${step.label}</div>
                 <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     ${extraHtml}
-                    <input type="time" id="${step.id}" class="p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none w-36">
+                    <input type="time" id="${step.id}" onchange="executeSync('${step.id}')" class="p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none w-36">
                     <button type="button" class="bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors whitespace-nowrap shadow-sm cursor-pointer ml-auto sm:ml-0" onclick="setCurrentTimeAndSync('${step.id}')">現在時間</button>
                 </div>
             </div>
