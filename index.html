@@ -61,7 +61,7 @@
             <!-- Action Buttons Footer -->
             <div class="pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div class="text-xs text-slate-400">
-                    * 點選「現在時間」即會自動將該欄位與備註同步至雲端
+                    * 點選「現在時間」或填寫備註後離開輸入框，即會自動同步至雲端
                 </div>
                 <button type="button" onclick="confirmComplete()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-xl shadow-md transition-all duration-200 flex items-center gap-2 cursor-pointer z-10 w-full sm:w-auto justify-center">
                     ✅ 輸入完成
@@ -141,7 +141,7 @@
                 </div>
             </div>
             <div class="w-full pt-1">
-                <input type="text" id="${step.id}Note" placeholder="備註 (選填)" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                <input type="text" id="${step.id}Note" placeholder="備註 (選填)" onblur="executeSync('${step.id}')" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
             </div>
         `;
         container.appendChild(row);
